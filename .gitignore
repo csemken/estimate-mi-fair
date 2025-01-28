@@ -1,5 +1,7 @@
-# don't commit notebooks
+# don't commit notebooks, plots or outputs
 *.ipynb
+plots/
+output/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

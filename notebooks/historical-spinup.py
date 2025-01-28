@@ -12,7 +12,14 @@
 #     name: python3
 # ---
 
+# %% [markdown]
+# # Scenario evolving impulse response functions with fair
+#
+# For numerical stability, we want to make the pulse sizes reasonable, so add 1 GtCO2 in 2024 (about 10% of current CO2 emissions, and a factor of about 30 smaller than Joos who used 100 GtC).
+
 # %%
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -55,7 +62,7 @@ f.fill_from_csv(
 
 # %%
 # I was lazy and didn't convert emissions to CSV, so use the old clunky method of importing from netCDF
-
+# this is from calibration-1.4.0
 da_emissions = xr.load_dataarray("../data/emissions/ssp_emissions_1750-2500.nc")
 output_ensemble_size = 841
 da = da_emissions.loc[dict(config="unspecified", scenario=["ssp119", "ssp245", "ssp585"])]
@@ -95,7 +102,7 @@ f.run()
 
 # %%
 new_emissions = f.emissions.copy()
-new_emissions[274, :, :, 0] = new_emissions[274, :, :, 0] + 1e-9
+new_emissions[274, :, :, 0] = new_emissions[274, :, :, 0] + 1
 
 # %%
 f_irf = FAIR(ch4_method='Thornhill2021')
@@ -143,101 +150,192 @@ f_irf.run()
 # note this is one model with a higher ECS than the AR6 assessment, so really this is bang in line
 
 # %%
-plt.plot((f_irf.temperature-f.temperature).sel(scenario='ssp245', layer=0, timebounds=np.arange(2024, 2501)));
-plt.xlim(0, 200)
-plt.ylim(-0.1e-12, 2e-12)
+# the IRFs are the differences between the runs with an additional 1 tCO2 and the base scenarios.
+
+irf_ssp119 = (f_irf.temperature-f.temperature).sel(scenario='ssp119', layer=0, timebounds=np.arange(2024, 2501))
+irf_ssp245 = (f_irf.temperature-f.temperature).sel(scenario='ssp245', layer=0, timebounds=np.arange(2024, 2501))
+irf_ssp585 = (f_irf.temperature-f.temperature).sel(scenario='ssp585', layer=0, timebounds=np.arange(2024, 2501))
 
 # %%
-plt.plot((f_irf.temperature-f.temperature).sel(scenario='ssp119', layer=0, timebounds=np.arange(2024, 2501)));
-plt.xlim(0, 20)
-plt.ylim(-0.1e-12, 1e-12)
+irf_ssp245
 
 # %%
-plt.plot((f_irf.temperature-f.temperature).sel(scenario='ssp585', layer=0, timebounds=np.arange(2024, 2501)));
-plt.xlim(0, 100)
-plt.ylim(-0.1e-12, 1e-12)
-
-# %% [markdown]
-# ## Second, a future CO2-only run spun up from present day climate
+os.makedirs('../plots', exist_ok=True)
 
 # %%
-f = FAIR()
-f.define_time(2025, 3026, 1)
-scenarios = ['irf-1tonCO2']
-f.define_scenarios(scenarios)
-f.define_configs(configs)
+plt.fill_between(
+    np.arange(-1, 476),
+    irf_ssp245.min(dim='config'), 
+    irf_ssp245.max(dim='config'), 
+    color='#f69320', 
+    alpha=0.2
+);
+plt.fill_between(
+    np.arange(-1, 476),
+    irf_ssp245.quantile(.05, dim='config'), 
+    irf_ssp245.quantile(.95, dim='config'), 
+    color='#f69320', 
+    alpha=0.2
+);
+plt.fill_between(
+    np.arange(-1, 476),
+    irf_ssp245.quantile(.16, dim='config'), 
+    irf_ssp245.quantile(.84, dim='config'), 
+    color='#f69320', 
+    alpha=0.2
+);
+plt.plot(np.arange(-1, 476), irf_ssp245.median(dim='config'), color='#f69320');
+plt.xlim(0, 475)
+plt.ylim(-0.1e-3, 1.2e-3)
+plt.ylabel('Temperature increase, K')
+plt.title('Impulse response to 1 GtCO2 upon ssp245')
+
+plt.savefig('../plots/ssp245.png')
 
 # %%
-species = ['CO2', 'CH4', 'N2O']
-properties = {
-    "CO2": {
-        'type': 'co2',
-        'input_mode': 'emissions',
-        'greenhouse_gas': True,
-        'aerosol_chemistry_from_emissions': False,
-        'aerosol_chemistry_from_concentration': False
-    },
-    "CH4": {
-        'type': 'ch4',
-        'input_mode': 'emissions',
-        'greenhouse_gas': True,
-        'aerosol_chemistry_from_emissions': False,
-        'aerosol_chemistry_from_concentration': False
-    },
-    "N2O": {
-        'type': 'n2o',
-        'input_mode': 'emissions',
-        'greenhouse_gas': True,
-        'aerosol_chemistry_from_emissions': False,
-        'aerosol_chemistry_from_concentration': False
-    }
-}
+plt.fill_between(
+    np.arange(-1, 476),
+    irf_ssp119.min(dim='config'), 
+    irf_ssp119.max(dim='config'), 
+    color='#00a9cf', 
+    alpha=0.2
+);
+plt.fill_between(
+    np.arange(-1, 476),
+    irf_ssp119.quantile(.05, dim='config'), 
+    irf_ssp119.quantile(.95, dim='config'), 
+    color='#00a9cf', 
+    alpha=0.2
+);
+plt.fill_between(
+    np.arange(-1, 476),
+    irf_ssp119.quantile(.16, dim='config'), 
+    irf_ssp119.quantile(.84, dim='config'), 
+    color='#00a9cf', 
+    alpha=0.2
+);
+plt.plot(np.arange(-1, 476), irf_ssp119.median(dim='config'), color='#00a9cf');
+plt.xlim(0, 475)
+plt.ylim(-0.1e-3, 1.2e-3)
+plt.ylabel('Temperature increase, K')
+plt.title('Impulse response to 1 GtCO2 upon ssp119')
+
+plt.savefig('../plots/ssp119.png')
 
 # %%
-f.define_species(species, properties)
-f.allocate()
+plt.fill_between(
+    np.arange(-1, 476),
+    irf_ssp585.min(dim='config'), 
+    irf_ssp585.max(dim='config'), 
+    color='#980002', 
+    alpha=0.2
+);
+plt.fill_between(
+    np.arange(-1, 476),
+    irf_ssp585.quantile(.05, dim='config'), 
+    irf_ssp585.quantile(.95, dim='config'), 
+    color='#980002', 
+    alpha=0.2
+);
+plt.fill_between(
+    np.arange(-1, 476),
+    irf_ssp585.quantile(.16, dim='config'), 
+    irf_ssp585.quantile(.84, dim='config'), 
+    color='#980002', 
+    alpha=0.2
+);
+plt.plot(np.arange(-1, 476), irf_ssp585.median(dim='config'), color='#980002');
+plt.xlim(0, 475)
+plt.ylim(-0.1e-3, 1.2e-3)
+plt.ylabel('Temperature increase, K')
+plt.title('Impulse response to 1 GtCO2 upon ssp585')
+
+plt.savefig('../plots/ssp585.png')
 
 # %%
-f.concentration.loc[dict(specie='CH4')] = 808.2490285
-f.concentration.loc[dict(specie='N2O')] = 273.021047
+plt.fill_between(
+    np.arange(-1, 476),
+    (irf_ssp585-irf_ssp245).min(dim='config'), 
+    (irf_ssp585-irf_ssp245).max(dim='config'), 
+    color='k', 
+    alpha=0.2
+);
+plt.fill_between(
+    np.arange(-1, 476),
+    (irf_ssp585-irf_ssp245).quantile(.05, dim='config'), 
+    (irf_ssp585-irf_ssp245).quantile(.95, dim='config'), 
+    color='k', 
+    alpha=0.2
+);
+plt.fill_between(
+    np.arange(-1, 476),
+    (irf_ssp585-irf_ssp245).quantile(.16, dim='config'), 
+    (irf_ssp585-irf_ssp245).quantile(.84, dim='config'), 
+    color='k', 
+    alpha=0.2
+);
+plt.plot(np.arange(-1, 476), (irf_ssp585-irf_ssp245).median(dim='config'), color='k');
+plt.xlim(0, 475)
+plt.ylim(-1.2e-3, 1.2e-3)
+plt.ylabel('Temperature increase, K')
+plt.title('Difference ssp585 to ssp245')
+
+plt.savefig('../plots/diff_ssp585_ssp245.png')
 
 # %%
-emission_co2 = np.zeros(1001)
-emission_co2[0] = 1e-9 # gigaton CO2 to ton CO2
+plt.fill_between(
+    np.arange(-1, 476),
+    (irf_ssp245-irf_ssp119).min(dim='config'), 
+    (irf_ssp245-irf_ssp119).max(dim='config'), 
+    color='k', 
+    alpha=0.2
+);
+plt.fill_between(
+    np.arange(-1, 476),
+    (irf_ssp245-irf_ssp119).quantile(.05, dim='config'), 
+    (irf_ssp245-irf_ssp119).quantile(.95, dim='config'), 
+    color='k', 
+    alpha=0.2
+);
+plt.fill_between(
+    np.arange(-1, 476),
+    (irf_ssp245-irf_ssp119).quantile(.16, dim='config'), 
+    (irf_ssp245-irf_ssp119).quantile(.84, dim='config'), 
+    color='k', 
+    alpha=0.2
+);
+plt.plot(np.arange(-1, 476), (irf_ssp245-irf_ssp119).median(dim='config'), color='k');
+plt.xlim(0, 475)
+plt.ylim(-1.2e-3, 1.2e-3)
+plt.ylabel('Temperature increase, K')
+plt.title('Difference ssp245 to ssp119')
+
+plt.savefig('../plots/diff_ssp245_ssp119.png')
 
 # %%
-f.emissions
+output = np.stack((irf_ssp119.data, irf_ssp245.data, irf_ssp585.data), axis=0)
+output.shape
 
 # %%
-f.emissions.loc[dict(specie='CO2')] = emission_co2[:, None, None]
-fill(f.emissions, 0, specie='CH4')
-fill(f.emissions, 0, specie='N2O')
+ds = xr.Dataset(
+    data_vars = dict(
+        temperature = (['scenario', 'timebound', 'config'], output),
+    ),
+    coords = dict(
+        scenario = ['irf_ssp119', 'irf_ssp245', 'irf_ssp585'],
+        timebounds = np.arange(-1, 476),
+        config = df_configs.index
+    ),
+    attrs = dict(units = 'K/GtCO2')
+)
 
 # %%
-f.fill_species_configs("../data/fair-calibration/species_configs_properties_1.4.0.csv")
-f.override_defaults("../data/fair-calibration/calibrated_constrained_parameters_1.4.0.csv")
+ds
 
 # %%
-conc.sel(specie='CO2')
+os.makedirs('../output/', exist_ok=True)
 
 # %%
-gasp
+ds.to_netcdf('../output/irf_1GtCO2.nc')
 
 # %%
-# initiliase from startdump
-initialise(f.concentration, conc[-1, :, :, 2:5].values)
-initialise(f.forcing, forc[-1, :, :, 2:5].values)
-initialise(f.temperature, temp[-1, ...].values)
-initialise(f.airborne_emissions, abem[-1, :, :, 2:5].values)
-initialise(f.cumulative_emissions, cuem[-1, :, :, 2:5].values)
-initialise(f.ocean_heat_content_change, ohcc[-1, ...].values)
-f.gas_partitions=gasp[-1, :, 2:5, :].values
-
-# run
-f.run()
-
-# %%
-f.concentration.shape
-
-# %%
-conc[-1, :, :, 2:5].shape
