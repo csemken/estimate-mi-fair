@@ -5,9 +5,9 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.16.6
+#       jupytext_version: 1.16.7
 #   kernelspec:
-#     display_name: Python 3 (ipykernel)
+#     display_name: Python 3
 #     language: python
 #     name: python3
 # ---
@@ -103,6 +103,12 @@ f.run()
 # %%
 new_emissions = f.emissions.copy()
 new_emissions[274, :, :, 0] = new_emissions[274, :, :, 0] + 1
+
+# %% [markdown]
+# CS: Does the pulse happen in 2024 or 2025?
+
+# %%
+1750+274
 
 # %%
 f_irf = FAIR(ch4_method='Thornhill2021')
@@ -316,10 +322,13 @@ plt.savefig('../plots/diff_ssp245_ssp119.png')
 output = np.stack((irf_ssp119.data, irf_ssp245.data, irf_ssp585.data), axis=0)
 output.shape
 
+# %% [markdown]
+# CS: corrected typo (timbound → timebounds)
+
 # %%
 ds = xr.Dataset(
     data_vars = dict(
-        temperature = (['scenario', 'timebound', 'config'], output),
+        temperature = (['scenario', 'timebounds', 'config'], output),
     ),
     coords = dict(
         scenario = ['irf_ssp119', 'irf_ssp245', 'irf_ssp585'],
