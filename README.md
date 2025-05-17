@@ -15,6 +15,12 @@ conda activate ./.conda
 jupytext --sync notebooks/*
 ```
 
+## Re-export notebook
+
+```
+jupytext --to py:percent notebooks/historical-spinup.ipynb
+```
+
 ## Adding/updating requirements
 
 Add required packages to `environment.yml`. Then run:

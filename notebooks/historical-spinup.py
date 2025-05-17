@@ -7,7 +7,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.16.7
 #   kernelspec:
-#     display_name: Python 3 (ipykernel)
+#     display_name: Python 3
 #     language: python
 #     name: python3
 # ---
@@ -297,9 +297,6 @@ output = np.stack(
 )
 output.shape
 
-# %% [markdown]
-# CS: corrected typo (timbound → timebounds)
-
 # %%
 ds = xr.Dataset(
     data_vars = dict(
@@ -307,13 +304,11 @@ ds = xr.Dataset(
     ),
     coords = dict(
         scenario = [f'irf_{scenario}' for scenario in scenarios],
-        timebounds = np.arange(-1, 475),
+        timebounds = irf['ssp119']["timebounds"].data.astype(int),
         config = df_configs.index
     ),
     attrs = dict(units = 'K/GtCO2')
 )
-
-# %%
 ds
 
 # %%
@@ -321,5 +316,3 @@ os.makedirs('../output/', exist_ok=True)
 
 # %%
 ds.to_netcdf('../output/irf_1GtCO2.nc')
-
-# %%
