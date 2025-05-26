@@ -7,7 +7,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.16.7
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: Python 3 (ipykernel)
 #     language: python
 #     name: python3
 # ---
@@ -78,6 +78,8 @@ index_of_pulse
 
 # %%
 irf = {}
+delta_erf = {}
+delta_c = {}
 
 # %%
 for ibatch in tqdm(range(nbatches)):
@@ -161,6 +163,8 @@ for ibatch in tqdm(range(nbatches)):
 
     for scenario in batch_scenarios:
         irf[scenario] = (f_irf.temperature-f.temperature).sel(scenario=scenario, layer=0, timebounds=np.arange(year_of_pulse, 2501))
+        delta_erf[scenario] = (f_irf.forcing_sum-f.forcing_sum).sel(scenario=scenario, timebounds=np.arange(year_of_pulse, 2501))
+        delta_c[scenario] = (f_irf.concentration-f.concentration).sel(scenario=scenario, specie='CO2', timebounds=np.arange(year_of_pulse, 2501))
 
 # %% [markdown]
 # ### IRF is the difference of the run with an additional 1 tCO2 pulse in 2024
@@ -173,6 +177,15 @@ for ibatch in tqdm(range(nbatches)):
 
 # %%
 irf['ssp245']
+
+# %% [markdown]
+# ## check also the differences in CO2 concentration and ERF after an additional 1 tCO2 pulse in 2024
+
+# %%
+delta_erf['ssp245']
+
+# %%
+delta_c['ssp245']
 
 # %%
 os.makedirs('../plots', exist_ok=True)
@@ -221,6 +234,119 @@ for iscen, scenario in enumerate(scenarios):
 
 fig.tight_layout()
 plt.savefig(f'../plots/scenarios.png')
+
+# %%
+fig, ax = plt.subplots(2, 4, figsize=(16, 7))
+for iscen, scenario in enumerate(scenarios):
+    i = iscen//4
+    j = iscen % 4
+    ax[i, j].fill_between(
+        np.arange(-1, 475),
+        delta_erf[scenario].min(dim='config'), 
+        delta_erf[scenario].max(dim='config'), 
+        color=ipcc_colors[scenario], 
+        alpha=0.2
+    );
+    ax[i, j].fill_between(
+        np.arange(-1, 475),
+        delta_erf[scenario].quantile(.05, dim='config'), 
+        delta_erf[scenario].quantile(.95, dim='config'), 
+        color=ipcc_colors[scenario], 
+        alpha=0.2
+    );
+    ax[i, j].fill_between(
+        np.arange(-1, 475),
+        delta_erf[scenario].quantile(.16, dim='config'), 
+        delta_erf[scenario].quantile(.84, dim='config'), 
+        color=ipcc_colors[scenario], 
+        alpha=0.2
+    );
+    ax[i, j].plot(np.arange(-1, 475), delta_erf[scenario].median(dim='config'), color=ipcc_colors[scenario]);
+    ax[i, j].set_xlim(0, 475)
+    ax[i, j].set_ylim(-0.1e-3, 1.2e-3)
+    ax[i, j].set_ylabel('Effective radiative forcing increase, W m$^{-2}$')
+    ax[i, j].set_title(f'1 GtCO2 upon {scenario}')
+
+fig.tight_layout()
+plt.savefig(f'../plots/delta_erf.png')
+
+# %%
+fig, ax = plt.subplots(2, 4, figsize=(16, 7))
+for iscen, scenario in enumerate(scenarios):
+    i = iscen//4
+    j = iscen % 4
+    ax[i, j].fill_between(
+        np.arange(-1, 475),
+        delta_c[scenario].min(dim='config'), 
+        delta_c[scenario].max(dim='config'), 
+        color=ipcc_colors[scenario], 
+        alpha=0.2
+    );
+    ax[i, j].fill_between(
+        np.arange(-1, 475),
+        delta_c[scenario].quantile(.05, dim='config'), 
+        delta_c[scenario].quantile(.95, dim='config'), 
+        color=ipcc_colors[scenario], 
+        alpha=0.2
+    );
+    ax[i, j].fill_between(
+        np.arange(-1, 475),
+        delta_c[scenario].quantile(.16, dim='config'), 
+        delta_c[scenario].quantile(.84, dim='config'), 
+        color=ipcc_colors[scenario], 
+        alpha=0.2
+    );
+    ax[i, j].plot(np.arange(-1, 475), delta_c[scenario].median(dim='config'), color=ipcc_colors[scenario]);
+    ax[i, j].set_xlim(0, 475)
+    ax[i, j].set_ylim(-0.1e-1, 1.6e-1)
+    ax[i, j].set_ylabel('CO$_2$ concentration increase, ppm')
+    ax[i, j].set_title(f'1 GtCO2 upon {scenario}')
+
+fig.tight_layout()
+plt.savefig(f'../plots/delta_c.png')
+
+# %% [markdown]
+# ## Radiative efficiency is marginal increase in ERF for an increase in atmospheric burden
+
+# %%
+radeff = {}
+for scenario in scenarios:
+    radeff[scenario] = delta_erf[scenario]/delta_c[scenario]
+
+# %%
+fig, ax = plt.subplots(2, 4, figsize=(16, 7))
+for iscen, scenario in enumerate(scenarios):
+    i = iscen//4
+    j = iscen % 4
+    ax[i, j].fill_between(
+        np.arange(-1, 475),
+        radeff[scenario].min(dim='config'), 
+        radeff[scenario].max(dim='config'), 
+        color=ipcc_colors[scenario], 
+        alpha=0.2
+    );
+    ax[i, j].fill_between(
+        np.arange(-1, 475),
+        radeff[scenario].quantile(.05, dim='config'), 
+        radeff[scenario].quantile(.95, dim='config'), 
+        color=ipcc_colors[scenario], 
+        alpha=0.2
+    );
+    ax[i, j].fill_between(
+        np.arange(-1, 475),
+        radeff[scenario].quantile(.16, dim='config'), 
+        radeff[scenario].quantile(.84, dim='config'), 
+        color=ipcc_colors[scenario], 
+        alpha=0.2
+    );
+    ax[i, j].plot(np.arange(-1, 475), radeff[scenario].median(dim='config'), color=ipcc_colors[scenario]);
+    ax[i, j].set_xlim(0, 475)
+    ax[i, j].set_ylim(-0.1e-2, 2.2e-2)
+    ax[i, j].set_ylabel('Radiative efficiency, W m$^{-2}$ ppm$^{-1}$')
+    ax[i, j].set_title(f'1 GtCO2 upon {scenario}')
+
+fig.tight_layout()
+plt.savefig(f'../plots/radiative_efficiency.png')
 
 # %%
 plt.fill_between(
@@ -297,6 +423,9 @@ output = np.stack(
 )
 output.shape
 
+# %% [markdown]
+# CS: corrected typo (timbound → timebounds)
+
 # %%
 ds = xr.Dataset(
     data_vars = dict(
@@ -304,11 +433,13 @@ ds = xr.Dataset(
     ),
     coords = dict(
         scenario = [f'irf_{scenario}' for scenario in scenarios],
-        timebounds = irf['ssp119']["timebounds"].data.astype(int),
+        timebounds = np.arange(-1, 475),
         config = df_configs.index
     ),
     attrs = dict(units = 'K/GtCO2')
 )
+
+# %%
 ds
 
 # %%
@@ -316,3 +447,5 @@ os.makedirs('../output/', exist_ok=True)
 
 # %%
 ds.to_netcdf('../output/irf_1GtCO2.nc')
+
+# %%
