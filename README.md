@@ -1,6 +1,13 @@
-# estimate-mi-fair
+# Every tonne matters: temperature response
 
-Generate state-dependent impulse response functions for fair-2.2
+This is the code repository to replicate the state-dependent temperature impulse response functions for “Every tonne matters: marginal emission reductions have human-scale benefits”.
+
+Note: all shell commands/scripts should be run from the project’s root directory.
+Notebooks should be run from the `notebooks/` folder.
+
+## Pre-requirements
+
+- Conda ([Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/main) or [Miniforge](https://conda-forge.org/miniforge/))
 
 ## Setup
 
@@ -14,6 +21,10 @@ conda activate ./.conda
 ```shell
 jupytext --sync notebooks/*
 ```
+
+## Replicate
+
+Execute `notebooks/historical-spinup.ipynb`.
 
 ## Re-export notebook
 
